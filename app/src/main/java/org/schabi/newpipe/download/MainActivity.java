@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         actionBar.setTitle(R.string.downloads_title);
         actionBar.setDisplayShowTitleEnabled(true);
 
-        mPrefs = getSharedPreferences(THREADS, Context.MODE_WORLD_READABLE);
+        mPrefs = getSharedPreferences(THREADS, Context.MODE_WORLD_READABLE);   //Preferenceを取得
 
         // Fragment
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         });
 
-        int def = mPrefs.getInt(THREADS, 4);
+        int def = mPrefs.getInt(THREADS, 4);        //Preferenceからデータ読み込み
         threads.setProgress(def - 1);
         tCount.setText(String.valueOf(def));
 
@@ -223,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         mBinder.onMissionAdded(mManager.getMission(res));
                         mFragment.notifyChange();
 
-                        mPrefs.edit().putInt(THREADS, threads.getProgress() + 1).commit();
+                        mPrefs.edit().putInt(THREADS, threads.getProgress() + 1).commit();   //これでPreferenceに書き込み
                         mPendingUrl = null;
                         dialog.dismiss();
                     }

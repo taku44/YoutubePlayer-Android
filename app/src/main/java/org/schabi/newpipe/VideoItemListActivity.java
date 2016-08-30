@@ -17,16 +17,20 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
+import android.content.SharedPreferences.Editor;
 
 import org.schabi.newpipe.download.MainActivity;
 import org.schabi.newpipe.extractor.ExtractionException;
 import org.schabi.newpipe.extractor.SearchEngine;
 import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.StreamingService;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  * Copyright (C) Christian Schabesberger 2015 <chris.schabesberger@mailbox.org>
@@ -47,7 +51,7 @@ import java.util.Vector;
  */
 
 public class VideoItemListActivity extends AppCompatActivity
-        implements VideoItemListFragment.Callbacks {
+        implements VideoItemListFragment.Callbacks {    //onItemSelectedのコールバックのために実装
 
     private static final String TAG = VideoItemListFragment.class.toString();
 
@@ -82,6 +86,11 @@ public class VideoItemListActivity extends AppCompatActivity
                 searchQuery = query;
                 listFragment.search(query);
 
+                //検索履歴を保存
+                Editor editor = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE).edit();  //第一引数がPreferenceの名前
+                editor.putString("list", query);
+                editor.commit();
+
                 // hide virtual keyboard
                 InputMethodManager inputManager =
                         (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -105,7 +114,7 @@ public class VideoItemListActivity extends AppCompatActivity
                 e.printStackTrace();
             }
             View bg = findViewById(R.id.mainBG);
-            bg.setVisibility(View.GONE);
+            bg.setVisibility(View.GONE);   //見せなくする
             return true;
         }
 
@@ -113,6 +122,8 @@ public class VideoItemListActivity extends AppCompatActivity
         public boolean onQueryTextChange(String newText) {
             if(!newText.isEmpty()) {
                 searchSuggestions(newText);
+            }else{
+                searchSuggestions("りれき");
             }
             return true;
         }
@@ -129,14 +140,26 @@ public class VideoItemListActivity extends AppCompatActivity
         @Override
         public boolean onSuggestionSelect(int position) {
             String suggestion = suggestionListAdapter.getSuggestion(position);
-            searchView.setQuery(suggestion,true);
+            searchView.setQuery(suggestion,true);  //選択された文字列で検索
+
+            //検索履歴を保存
+            Editor editor = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE).edit();  //第一引数がPreferenceの名前
+            editor.putString("list", suggestion);
+            editor.commit();
+
             return false;
         }
 
         @Override
         public boolean onSuggestionClick(int position) {
             String suggestion = suggestionListAdapter.getSuggestion(position);
-            searchView.setQuery(suggestion,true);
+            searchView.setQuery(suggestion,true);   //選択された文字列で検索
+
+            //検索履歴を保存
+            Editor editor = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE).edit();  //第一引数がPreferenceの名前
+            editor.putString("list", suggestion);
+            editor.commit();
+
             return false;
         }
     }
@@ -169,14 +192,26 @@ public class VideoItemListActivity extends AppCompatActivity
         @Override
         public void run() {
             try {
-                SearchEngine engine =
-                        ServiceList.getService(serviceId).getSearchEngineInstance(new Downloader());
-                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-                String searchLanguageKey = context.getString(R.string.search_language_key);
-                String searchLanguage = sp.getString(searchLanguageKey,
-                        getString(R.string.default_language_value));
-                List<String> suggestions = engine.suggestionList(query,searchLanguage,new Downloader());
-                h.post(new SuggestionResultRunnable(suggestions));
+                if(query.equals("りれき")){
+                    //検索履歴を取得
+                    SharedPreferences pref = getSharedPreferences("shared_preference", MODE_PRIVATE);    //第一引数がPreferenceの名前
+                    String pastString = pref.getString("list", "過去履歴");  //第二引数は取得できなかった場合のデフォルト値
+
+                    List<String> searchHistory = new ArrayList<>();
+                    searchHistory.add(pastString);
+//                    searchHistory.add("CC");
+                    h.post(new SuggestionResultRunnable(searchHistory));
+                }else {
+                    SearchEngine engine =
+                            ServiceList.getService(serviceId).getSearchEngineInstance(new Downloader());
+                    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+                    String searchLanguageKey = context.getString(R.string.search_language_key);
+                    String searchLanguage = sp.getString(searchLanguageKey,
+                            getString(R.string.default_language_value));
+                    List<String> suggestions = engine.suggestionList(query, searchLanguage, new Downloader());
+                    h.post(new SuggestionResultRunnable(suggestions));  //別スレッドからUI部品操作を用いる際のパターン (実は任意のスレッド間通信ができる)
+                    // )
+                }
             } catch (ExtractionException e) {
                 ErrorActivity.reportError(h, VideoItemListActivity.this, e, null, findViewById(R.id.videoitem_list),
                         ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
@@ -217,7 +252,7 @@ public class VideoItemListActivity extends AppCompatActivity
                     ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
                             ServiceList.getNameOfService(currentStreamingServiceId), "", R.string.general_error));
         }
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);      //端末の音量調整
         listFragment = (VideoItemListFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.videoitem_list);
         listFragment.setStreamingService(streamingService);
@@ -256,14 +291,14 @@ public class VideoItemListActivity extends AppCompatActivity
                 }
                 searchView.setOnQueryTextListener(new SearchVideoQueryListener());
                 suggestionListAdapter = new SuggestionListAdapter(this);
-                searchView.setSuggestionsAdapter(suggestionListAdapter);
+                searchView.setSuggestionsAdapter(suggestionListAdapter);       //こういう仕組みらしい。
                 searchView.setOnSuggestionListener(new SearchSuggestionListener(searchView));
             } else {
                 searchView.setVisibility(View.GONE);
             }
         }
 
-        PreferenceManager.setDefaultValues(this, R.xml.settings, false);
+        PreferenceManager.setDefaultValues(this, R.xml.settings, false);   //Preferenceを消去し明示的にデフォルト値を書き出す
     }
 
     @Override
@@ -328,7 +363,7 @@ public class VideoItemListActivity extends AppCompatActivity
             searchView.setOnQueryTextListener(
                     new SearchVideoQueryListener());
             suggestionListAdapter = new SuggestionListAdapter(this);
-            searchView.setSuggestionsAdapter(suggestionListAdapter);
+            searchView.setSuggestionsAdapter(suggestionListAdapter);        //こういう仕組みらしい。
             searchView.setOnSuggestionListener(new SearchSuggestionListener(searchView));
             if(!searchQuery.isEmpty()) {
                 searchView.setQuery(searchQuery,false);
@@ -396,7 +431,6 @@ public class VideoItemListActivity extends AppCompatActivity
                 new SuggestionSearchRunnable(currentStreamingServiceId, query);
         searchThread = new Thread(suggestionSearchRunnable);
         searchThread.start();
-
     }
 
     private void postNewErrorToast(Handler h, final int stringResource) {

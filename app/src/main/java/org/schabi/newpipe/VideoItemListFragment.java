@@ -84,7 +84,7 @@ public class VideoItemListFragment extends ListFragment {
         }
     }
 
-    private class SearchRunnable implements Runnable {
+    private class SearchRunnable implements Runnable {   //これは非同期処理？
         public static final String YOUTUBE = "Youtube";
         private final SearchEngine engine;
         private final String query;
@@ -110,7 +110,7 @@ public class VideoItemListFragment extends ListFragment {
                 String searchLanguage = sp.getString(searchLanguageKey,
                         getString(R.string.default_language_value));
                 result = SearchResult
-                        .getSearchResult(engine, query, page, searchLanguage, new Downloader());
+                        .getSearchResult(engine, query, page, searchLanguage, new Downloader());   //これで検索
 
                 if(runs) {
                     h.post(new ResultRunnable(result, requestId));
@@ -222,7 +222,7 @@ public class VideoItemListFragment extends ListFragment {
                     Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         } finally {
-            loadingNextPage = false;
+            loadingNextPage = false;    //絶対に呼ばれる
         }
     }
 
@@ -306,7 +306,7 @@ public class VideoItemListFragment extends ListFragment {
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(Context context) {   //フラグメントのライフサイクル
         super.onAttach(context);
 
         // Activities containing this fragment must implement its callbacks.

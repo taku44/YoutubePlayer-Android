@@ -63,7 +63,7 @@ public class SuggestionListAdapter extends CursorAdapter {
     public void updateAdapter(List<String> suggestions) {
         MatrixCursor cursor = new MatrixCursor(columns);
         int i = 0;
-        for (String s : suggestions) {
+        for (String s : suggestions) {    //拡張for文
             String[] temp = new String[2];
             temp[0] = Integer.toString(i);
             temp[1] = s;

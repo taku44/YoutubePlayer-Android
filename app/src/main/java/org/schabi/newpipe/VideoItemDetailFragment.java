@@ -122,7 +122,7 @@ public class VideoItemDetailFragment extends Fragment {
 
     private OnInvokeCreateOptionsMenuListener onInvokeCreateOptionsMenuListener;
 
-    private class VideoExtractorRunnable implements Runnable {
+    private class VideoExtractorRunnable implements Runnable {   //別スレッド処理
         private final Handler h = new Handler();
         private StreamExtractor streamExtractor;
         private final StreamingService service;
@@ -140,7 +140,7 @@ public class VideoItemDetailFragment extends Fragment {
                 streamExtractor = service.getExtractorInstance(videoUrl, new Downloader());
                 streamInfo = StreamInfo.getVideoInfo(streamExtractor, new Downloader());
 
-                h.post(new VideoResultReturnedRunnable(streamInfo));
+                h.post(new VideoResultReturnedRunnable(streamInfo));   //定期実行ではなさそう？
 
                 // look for errors during extraction
                 // this if statement only covers extra information.
@@ -251,7 +251,7 @@ public class VideoItemDetailFragment extends Fragment {
                 boolean showAgeRestrictedContent = PreferenceManager.getDefaultSharedPreferences(a)
                         .getBoolean(activity.getString(R.string.show_age_restricted_content), false);
                 if (streamInfo.age_limit == 0 || showAgeRestrictedContent) {
-                    updateInfo(streamInfo);
+                    updateInfo(streamInfo);         //これでPlayVideoActivityに遷移する
                 } else {
                     onNotSpecifiedContentErrorWithMessage(R.string.video_is_age_restricted);
                 }
@@ -303,7 +303,7 @@ public class VideoItemDetailFragment extends Fragment {
             Button nextVideoButton = (Button) activity.findViewById(R.id.detailNextVideoButton);
             TextView similarTitle = (TextView) activity.findViewById(R.id.detailSimilarTitle);
             Button backgroundButton = (Button)
-                    activity.findViewById(R.id.detailVideoThumbnailWindowBackgroundButton);
+                    activity.findViewById(R.id.detailVideoThumbnailWindowBackgroundButton);   //押されたら再生
             View topView = activity.findViewById(R.id.detailTopView);
             View nextVideoView = null;
             if(info.next_video != null) {
@@ -443,7 +443,7 @@ public class VideoItemDetailFragment extends Fragment {
             backgroundButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    playVideo(info);
+                    playVideo(info);        //バックグラウンドボタンが押されたら再生
                 }
             });
 
@@ -781,7 +781,6 @@ public class VideoItemDetailFragment extends Fragment {
         activity = (AppCompatActivity) getActivity();
         showNextVideoItem = PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .getBoolean(activity.getString(R.string.show_next_video_key), true);
-
     }
 
     @Override
@@ -808,7 +807,7 @@ public class VideoItemDetailFragment extends Fragment {
         }
         thumbnailWindowLayout = a.findViewById(R.id.detailVideoThumbnailWindowLayout);
         Button backgroundButton = (Button)
-                a.findViewById(R.id.detailVideoThumbnailWindowBackgroundButton);
+                a.findViewById(R.id.detailVideoThumbnailWindowBackgroundButton);   //これを押されたら再生？？
 
         // Sometimes when this fragment is not visible it still gets initiated
         // then we must not try to access objects of this fragment.
@@ -821,7 +820,7 @@ public class VideoItemDetailFragment extends Fragment {
                         getArguments().getString(VIDEO_URL), streamingService));
 
                 autoPlayEnabled = getArguments().getBoolean(AUTO_PLAY);
-                videoExtractorThread.start();
+                videoExtractorThread.start();    //これで別スレッドが作成されて、VideoExtractorRunnable で実装した run()メソッドが実行される
             } catch (Exception e) {
                 e.printStackTrace();
             }

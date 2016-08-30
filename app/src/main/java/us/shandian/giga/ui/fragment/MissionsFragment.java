@@ -62,8 +62,9 @@ public abstract class MissionsFragment extends Fragment
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View v = inflater.inflate(R.layout.missions, container, false);
 		
-		mPrefs = getActivity().getSharedPreferences("mode", Context.MODE_WORLD_READABLE);
-		mLinear = mPrefs.getBoolean("linear", false);
+		mPrefs = getActivity().getSharedPreferences("mode", Context.MODE_WORLD_READABLE);  //他のアプリが読み込めるように指定 第一引数は、プリファレンスの名前。これは、保存するキーの名前とは別モノです。
+
+		mLinear = mPrefs.getBoolean("linear", false);  //Preference読み込み  第二引数は、もしそのキーの値が存在しないときの初期値とする値を指定します
 		
 		// Bind the service
 		Intent i = new Intent();
@@ -125,7 +126,7 @@ public abstract class MissionsFragment extends Fragment
 			mSwitch.setIcon(mLinear ? R.drawable.grid : R.drawable.list);
 		}
 		
-		mPrefs.edit().putBoolean("linear", mLinear).commit();
+		mPrefs.edit().putBoolean("linear", mLinear).commit();  //Preference書き込み  第一引数はキー名で、第二引数は値になります
 	}
 	
 	protected abstract DownloadManager setupDownloadManager(DownloadManagerService.DMBinder binder);

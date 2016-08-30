@@ -35,7 +35,7 @@ import org.schabi.newpipe.extractor.StreamingService;
 
 public class VideoItemDetailActivity extends AppCompatActivity {
 
-    private static final String TAG = VideoItemDetailActivity.class.toString();
+    private static final String TAG = VideoItemDetailActivity.class.toString();   //Lod.dなどに使える
 
     private VideoItemDetailFragment fragment;
 
@@ -46,7 +46,7 @@ public class VideoItemDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_videoitem_detail);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        // Show the Up button in the action bar.
+        // Show the Up button(戻るボタンの事) in the action bar.
         try {
             //noinspection ConstantConditions
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -65,11 +65,12 @@ public class VideoItemDetailActivity extends AppCompatActivity {
         // http://developer.android.com/guide/components/fragments.html
         //
 
+        //以下、VideoItemDetailFragmentに引数を渡す準備をしている
         Bundle arguments = new Bundle();
-        if (savedInstanceState == null) {
+        if (savedInstanceState == null) {       //初めての場合
             // this means the video was called though another app
             if (getIntent().getData() != null) {
-                videoUrl = getIntent().getData().toString();
+                videoUrl = getIntent().getData().toString();    //ユーザーが指定した動画のurl
                 StreamingService[] serviceList = ServiceList.getServices();
                 //StreamExtractor videoExtractor = null;
                 for (int i = 0; i < serviceList.length; i++) {
@@ -90,7 +91,7 @@ public class VideoItemDetailActivity extends AppCompatActivity {
 
                 arguments.putBoolean(VideoItemDetailFragment.AUTO_PLAY,
                         PreferenceManager.getDefaultSharedPreferences(this)
-                                .getBoolean(getString(R.string.autoplay_through_intent_key), false));
+                                .getBoolean(getString(R.string.autoplay_through_intent_key), false));  //遷移後に自動再生するかどうか
             } else {
                 videoUrl = getIntent().getStringExtra(VideoItemDetailFragment.VIDEO_URL);
                 currentStreamingService = getIntent().getIntExtra(VideoItemDetailFragment.STREAMING_SERVICE, -1);
@@ -130,7 +131,7 @@ public class VideoItemDetailActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == android.R.id.home) {
+        if (id == android.R.id.home) {          //ActionBarの戻るボタンがタップされた場合
             // This ID represents the Home or Up button. In the case of this
             // activity, the Up button is shown. Use NavUtils to allow users
             // to navigate up one level in the application structure. For
