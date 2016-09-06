@@ -1,15 +1,22 @@
 package org.schabi.newpipe;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.MediaController;
 import android.widget.Toast;
+import android.widget.VideoView;
+import android.widget.VideoView;
 
 import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.StreamingService;
@@ -41,6 +48,10 @@ public class VideoItemDetailActivity extends AppCompatActivity {
 
     private String videoUrl;
     private int currentStreamingService = -1;
+
+    private MediaController mediaController;
+
+    private VideoView videoView;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,6 +103,7 @@ public class VideoItemDetailActivity extends AppCompatActivity {
                 arguments.putBoolean(VideoItemDetailFragment.AUTO_PLAY,
                         PreferenceManager.getDefaultSharedPreferences(this)
                                 .getBoolean(getString(R.string.autoplay_through_intent_key), false));  //遷移後に自動再生するかどうか
+
             } else {
                 videoUrl = getIntent().getStringExtra(VideoItemDetailFragment.VIDEO_URL);
                 currentStreamingService = getIntent().getIntExtra(VideoItemDetailFragment.STREAMING_SERVICE, -1);

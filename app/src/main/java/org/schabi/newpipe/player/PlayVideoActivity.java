@@ -7,7 +7,9 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnCompletionListener;
 import android.media.AudioManager;
+import android.preference.PreferenceManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -77,6 +79,7 @@ public class PlayVideoActivity extends AppCompatActivity {
 
     private SharedPreferences prefs;
     private static final String PREF_IS_LANDSCAPE = "is_landscape";
+    private static final String PREF_USE_REPEAT_PLAY = "use_repeat_play";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,23 +135,40 @@ public class PlayVideoActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);  //getPreferences(Context.MODE_PRIVATE);
+
         videoView.requestFocus();
         videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 progressBar.setVisibility(View.GONE);
-                videoView.seekTo(position);
+                videoView.seekTo(position);  //進捗確認を勝手にやってくれるらしい。
                 if (position <= 0) {
                     videoView.start();
                     showUi();
                 } else {
                     videoView.pause();
                 }
+                if(prefs.getBoolean(PREF_USE_REPEAT_PLAY, false)){
+                    mp.setLooping(true);
+                }
+            }
+        });
+
+        // 再生が完了したら次の処理をする
+        videoView.setOnCompletionListener(new OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                if(prefs.getBoolean(PREF_USE_REPEAT_PLAY, false)){  //PREF_USE_RANDOM_PLAYにする？？？
+                    mp.stop();
+                    playNext();
+                }
             }
         });
         videoUrl = intent.getStringExtra(VIDEO_URL);
 
-        Button button = (Button) findViewById(R.id.content_button);
+        Button button = (Button) findViewById(R.id.content_button);  //これはバックグラウンド全体のボタン
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -175,11 +195,21 @@ public class PlayVideoActivity extends AppCompatActivity {
                     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
 
-        prefs = getPreferences(Context.MODE_PRIVATE);
         if(prefs.getBoolean(PREF_IS_LANDSCAPE, false) && !isLandscape) {
             toggleOrientation();
         }
     }
+
+    public void playNext(){
+        // ランダムにuriを指定する
+//        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/"
+//                + R.raw.test);
+//        videoView.setVideoURI(uri);
+
+        Intent intent = getIntent();
+        videoView.setVideoURI(Uri.parse(intent.getStringExtra(STREAM_URL)));
+        videoView.start();
+    };
 
     @Override
     public boolean onCreatePanelMenu(int featured, Menu menu) {
@@ -258,7 +288,7 @@ public class PlayVideoActivity extends AppCompatActivity {
         //videoView.seekTo(position);
     }
 
-    private void showUi() {
+    private void showUi() {    //バックグラウンドをタップするとvideoView以外のuiも表示される
         try {
             uiIsHidden = false;
             mediaController.show(100000);
@@ -280,7 +310,7 @@ public class PlayVideoActivity extends AppCompatActivity {
         }
     }
 
-    private void hideUi() {
+    private void hideUi() {    //バックグラウンドをタップするとvideoView以外のuiが消える
         uiIsHidden = true;
         actionBar.hide();
         mediaController.hide();

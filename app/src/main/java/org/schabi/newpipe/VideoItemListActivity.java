@@ -31,6 +31,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Copyright (C) Christian Schabesberger 2015 <chris.schabesberger@mailbox.org>
@@ -91,6 +96,18 @@ public class VideoItemListActivity extends AppCompatActivity
                 editor.putString("list", query);
                 editor.commit();
 
+
+                /*SharedPreferences preferences = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE);
+                Gson gson = new Gson();
+                ArrayList mydata = gson.fromJson(preferences.getString("list", ""), ArrayList.class);
+                if(mydata.size() == 5){
+                    mydata.remove(4);   //remove the last
+                }
+                mydata.add(query);
+                preferences.edit().putString("list", gson.toJson(mydata)).apply();*/
+
+
+
                 // hide virtual keyboard
                 InputMethodManager inputManager =
                         (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -142,10 +159,34 @@ public class VideoItemListActivity extends AppCompatActivity
             String suggestion = suggestionListAdapter.getSuggestion(position);
             searchView.setQuery(suggestion,true);  //選択された文字列で検索
 
+
+
+//            HashSet<String> stringHashSet = new HashSet<String>();
+//            stringHashSet.add("set1");
+
             //検索履歴を保存
             Editor editor = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE).edit();  //第一引数がPreferenceの名前
             editor.putString("list", suggestion);
             editor.commit();
+
+
+            /*Set<String> stringSet = editor.getStringSet("foo", new HashSet<String>());
+            if(stringSet.size() == 5) {
+                stringSet.remove("4");
+            }*/
+//            editor.putStringSet("foo", stringSet).commit();
+
+
+
+            /*SharedPreferences preferences = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE);
+            Gson gson = new Gson();
+            ArrayList mydata = gson.fromJson(preferences.getString("list", ""), ArrayList.class);
+            if(mydata.size() == 5){
+                mydata.remove(4);   //remove the last
+            }
+            mydata.add(suggestion);
+            preferences.edit().putString("list", gson.toJson(mydata)).apply();*/
+
 
             return false;
         }
@@ -159,6 +200,16 @@ public class VideoItemListActivity extends AppCompatActivity
             Editor editor = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE).edit();  //第一引数がPreferenceの名前
             editor.putString("list", suggestion);
             editor.commit();
+
+
+            /*SharedPreferences preferences = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE);
+            Gson gson = new Gson();
+            ArrayList mydata = gson.fromJson(preferences.getString("list", ""), ArrayList.class);
+            if(mydata.size() == 5){
+                mydata.remove(4);   //remove the last
+            }
+            mydata.add(suggestion);
+            preferences.edit().putString("list", gson.toJson(mydata)).apply();*/
 
             return false;
         }
@@ -196,6 +247,16 @@ public class VideoItemListActivity extends AppCompatActivity
                     //検索履歴を取得
                     SharedPreferences pref = getSharedPreferences("shared_preference", MODE_PRIVATE);    //第一引数がPreferenceの名前
                     String pastString = pref.getString("list", "過去履歴");  //第二引数は取得できなかった場合のデフォルト値
+
+
+                    /*SharedPreferences preferences = getApplicationContext().getSharedPreferences("shared_preference", Context.MODE_PRIVATE);
+                    Gson gson = new Gson();
+                    ArrayList pastStrings = gson.fromJson(preferences.getString("list", ""),ArrayList.class);
+
+                    Log.d("リストは",pastStrings.toString());
+
+                    List<String> searchHistory = pastStrings;*/
+
 
                     List<String> searchHistory = new ArrayList<>();
                     searchHistory.add(pastString);

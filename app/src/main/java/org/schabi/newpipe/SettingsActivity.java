@@ -35,7 +35,7 @@ import android.view.ViewGroup;
  * along with NewPipe.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-public class SettingsActivity extends PreferenceActivity  {
+public class SettingsActivity extends PreferenceActivity  {   //これは設定画面！  http://techbooster.jpn.org/andriod/ui/986/
     private AppCompatDelegate mDelegate = null;
     SettingsFragment f = new SettingsFragment();
 

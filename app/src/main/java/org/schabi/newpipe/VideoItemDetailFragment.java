@@ -4,10 +4,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +22,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,11 +33,13 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.view.MenuItem;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import java.io.IOException;
 
@@ -50,8 +55,11 @@ import java.util.Vector;
 
 import org.schabi.newpipe.download.DownloadDialog;
 import org.schabi.newpipe.extractor.AudioStream;
+import org.schabi.newpipe.extractor.ExtractionException;
 import org.schabi.newpipe.extractor.MediaFormat;
 import org.schabi.newpipe.extractor.ParsingException;
+import org.schabi.newpipe.extractor.SearchEngine;
+import org.schabi.newpipe.extractor.SearchResult;
 import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.StreamExtractor;
 import org.schabi.newpipe.extractor.StreamInfo;
@@ -105,11 +113,18 @@ public class VideoItemDetailFragment extends Fragment {
     private boolean showNextVideoItem;
     private Bitmap videoThumbnail;
 
+    private MediaController mediaController;
+
     private View thumbnailWindowLayout;
     //this only remains due to downwards compatibility
     private FloatingActionButton playVideoButton;
     private final Point initialThumbnailPos = new Point(0, 0);
 
+    private VideoView videoView;
+
+    private Thread searchThread;
+    private SearchRunnable searchRunnable;
+    private int currentStreamingServiceId = -1;
 
     private ImageLoader imageLoader = ImageLoader.getInstance();
     private DisplayImageOptions displayImageOptions =
@@ -493,6 +508,144 @@ public class VideoItemDetailFragment extends Fragment {
         if(info.thumbnail_url != null && !info.thumbnail_url.isEmpty() && info.next_video != null) {
             imageLoader.displayImage(info.next_video.thumbnail_url,
                     nextVideoThumb, displayImageOptions, new ThumbnailLoadingListener());
+        }
+
+        uploaderThumb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //api取得
+                TextView uploaderView = (TextView) activity.findViewById(R.id.detailUploaderView);
+                startSearch(uploaderView.getText().toString(), 0);
+
+                //それを遷移先のactivityに渡す(intent)
+
+
+
+            }
+        });
+    }
+
+    private void startSearch(String query, int page) {
+
+
+
+        StreamingService streamingService = null;
+        try {
+            //------ todo: remove this line when multiservice support is implemented ------
+            currentStreamingServiceId = ServiceList.getIdOfService("Youtube");
+            streamingService = ServiceList.getService(currentStreamingServiceId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            /*ErrorActivity.reportError(VideoItemListActivity.this, e, null, findViewById(R.id.videoitem_list),
+                    ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
+                            ServiceList.getNameOfService(currentStreamingServiceId), "", R.string.general_error));*/
+        }
+
+
+
+//        currentRequestId++;
+        terminateThreads();
+        searchRunnable = new SearchRunnable(streamingService.getSearchEngineInstance(new Downloader()),
+                query, page);
+        searchThread = new Thread(searchRunnable);
+        searchThread.start();
+    }
+
+    private class SearchRunnable implements Runnable {   //これは非同期処理？
+        public static final String YOUTUBE = "Youtube";
+        private final SearchEngine engine;
+        private final String query;
+        private final int page;
+        final Handler h = new Handler();
+        private volatile boolean runs = true;
+//        private final int requestId;
+        public SearchRunnable(SearchEngine engine, String query, int page) {
+            this.engine = engine;
+            this.query = query;
+            this.page = page;
+//            this.requestId = requestId;
+        }
+        void terminate() {
+            runs = false;
+        }
+        @Override
+        public void run() {
+            SearchResult result = null;
+            try {
+                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
+                String searchLanguageKey = getContext().getString(R.string.search_language_key);
+                String searchLanguage = sp.getString(searchLanguageKey,
+                        getString(R.string.default_language_value));
+                result = SearchResult
+                        .getSearchResult(engine, query, page, searchLanguage, new Downloader());   //これで検索
+
+                if(result != null) {
+                    StreamPreviewInfo spp = result.resultList.get(0);  //テキトーな数字
+                    Log.d("リザルト1は", spp.webpage_url);
+                    Log.d("リザルト2は", spp.thumbnail_url);
+
+
+                    //遷移
+                    Intent detailIntent = new Intent(activity, VideoItemDetailActivity.class);
+                    //detailIntent.putExtra(VideoItemDetailFragment.ARG_ITEM_ID, id);
+                    detailIntent.putExtra(VideoItemDetailFragment.VIDEO_URL, spp.webpage_url);
+                    detailIntent.putExtra(VideoItemDetailFragment.STREAMING_SERVICE, currentStreamingServiceId);
+                    startActivity(detailIntent);
+                }
+
+
+
+
+                /*if(runs) {
+                    h.post(new ResultRunnable(result, requestId));
+                }*/
+
+                // look for errors during extraction
+                // soft errors:
+                if(result != null &&
+                        !result.errors.isEmpty()) {
+                    Log.e(TAG, "OCCURRED ERRORS DURING SEARCH EXTRACTION:");
+                    for(Exception e : result.errors) {
+                        e.printStackTrace();
+                        Log.e(TAG, "------");
+                    }
+
+                    Activity a = getActivity();
+                    View rootView = a.findViewById(R.id.videoitem_list);
+                    ErrorActivity.reportError(h, getActivity(), result.errors, null, rootView,
+                            ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
+                        /* todo: this shoudl not be assigned static */  YOUTUBE, query, R.string.light_parsing_error));
+
+                }
+                // hard errors:
+            } catch(IOException e) {
+//                postNewNothingFoundToast(h, R.string.network_error);
+                e.printStackTrace();
+            } catch(SearchEngine.NothingFoundException e) {
+                postNewErrorToast(h, e.getMessage());
+            } catch(ExtractionException e) {
+                ErrorActivity.reportError(h, getActivity(), e, null, null,
+                        ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
+                        /* todo: this shoudl not be assigned static */
+                                YOUTUBE, query, R.string.parsing_error));
+                //postNewErrorToast(h, R.string.parsing_error);
+                e.printStackTrace();
+
+            } catch(Exception e) {
+                ErrorActivity.reportError(h, getActivity(), e, null, null,
+                        ErrorActivity.ErrorInfo.make(ErrorActivity.SEARCHED,
+                        /* todo: this shoudl not be assigned static */ YOUTUBE, query, R.string.general_error));
+
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void terminateThreads() {
+        if(searchThread != null) {
+            searchRunnable.terminate();
+            // No need to join, since we don't really terminate the thread. We just demand
+            // it to post its result runnable into the gui main loop.
         }
     }
 
@@ -925,6 +1078,52 @@ public class VideoItemDetailFragment extends Fragment {
                         .putExtra(PlayVideoActivity.VIDEO_URL, info.webpage_url)
                         .putExtra(PlayVideoActivity.START_POSITION, info.start_position);
                 activity.startActivity(intent);     //also HERE !!!
+
+
+
+                //動画を拡大表示しない場合
+//                fragment.transactinでactivityにvideoFragment(独自に作成)を追加する？
+//                もしくはここでvideoView.start()?
+
+
+
+                /*mediaController = new MediaController(getActivity()) {
+                    @Override
+                    public boolean dispatchKeyEvent(KeyEvent event) {
+                        int keyCode = event.getKeyCode();
+                        final boolean uniqueDown = event.getRepeatCount() == 0
+                                && event.getAction() == KeyEvent.ACTION_DOWN;
+                        if (keyCode == KeyEvent.KEYCODE_BACK) {
+                            if (uniqueDown)
+                            {
+                                if (isShowing()) {
+//                                    finish();
+                                } else {
+                                    hide();
+                                }
+                            }
+                            return true;
+                        }
+                        return super.dispatchKeyEvent(event);
+                    }
+                };
+
+                Activity a = getActivity();
+                videoView = (VideoView) a.findViewById(R.id.video_view2);
+                try {
+                    videoView.setMediaController(mediaController);
+                    videoView.setVideoURI(Uri.parse(selectedVideoStream.url));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                videoView.requestFocus();
+                videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                    @Override
+                    public void onPrepared(MediaPlayer mp) {
+                        videoView.start();
+                    }
+                });*/
             }
         }
 
